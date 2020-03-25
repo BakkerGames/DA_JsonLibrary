@@ -137,7 +137,7 @@ Public NotInheritable Class JsonRoutines
                 Return result.ToString
 
             Case GetType(Guid)
-                Return $"""{value.ToString}"""
+                Return $"""{value}"""
 
             Case GetType(Boolean)
                 If CBool(value) Then
@@ -177,17 +177,40 @@ Public NotInheritable Class JsonRoutines
             Case GetType(JArray)
                 Return CType(value, JArray).ToStringFormatted(indentLevel)
 
+            Case GetType(Single), GetType(Double), GetType(Decimal)
+                ' --- Remove trailing decimal zeros. This is not necessary or part
+                ' --- of the JSON specification. However, it will be impossible to
+                ' --- compare two JSON string representations without this.
+                Return NormalizeDecimal(value.ToString)
+
             Case GetType(Byte), GetType(SByte), GetType(Short), GetType(Integer),
-                 GetType(Long), GetType(UShort), GetType(UInteger), GetType(ULong),
-                 GetType(Single), GetType(Double), GetType(Decimal)
+                 GetType(Long), GetType(UShort), GetType(UInteger), GetType(ULong)
                 ' --- Let ToString do all the work
                 Return value.ToString
 
         End Select
 
         ' --- Unknown ---
-        Throw New SystemException($"JSON Error: Unknown object type: {t.ToString}")
+        Throw New SystemException($"JSON Error: Unknown object type: {t}")
 
+    End Function
+
+    Private Shared Function NormalizeDecimal(ByVal value As String) As String
+        ' --- Purpose: Gets rid of trailing decimal zeros to normalize value
+        ' --- Author : Scott Bakker
+        ' --- Created: 03/19/2020
+        If value.Contains("E") OrElse value.Contains("e") Then
+            ' --- Scientific notation, leave alone
+            Return value
+        End If
+        If Not value.Contains(".") Then
+            Return value
+        End If
+        If value.StartsWith(".") Then
+            ' --- Cover leading decimal place
+            value = "0" + value
+        End If
+        Return value.TrimEnd("0"c).TrimEnd("."c)
     End Function
 
     Protected Friend Shared Function FromJsonString(ByVal value As String) As String

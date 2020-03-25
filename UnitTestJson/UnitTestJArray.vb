@@ -94,6 +94,34 @@ Public Class UnitTestJArray
     End Sub
 
     <TestMethod()>
+    Public Sub TestJArrayNormalizeDecimal()
+        ' arrange
+        Dim actualValue As String
+        Dim expectedValue As String = "[123.45]"
+        Dim ja As New JArray
+        Dim d As Decimal = Decimal.Parse("123.45000")
+        ja.Add(d)
+        ' act
+        actualValue = ja.ToString()
+        ' assert
+        Assert.AreEqual(expectedValue, actualValue)
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJArrayNormalizeDecimalZeros()
+        ' arrange
+        Dim actualValue As String
+        Dim expectedValue As String = "[123]"
+        Dim ja As New JArray
+        Dim d As Decimal = Decimal.Parse("123.00000")
+        ja.Add(d)
+        ' act
+        actualValue = ja.ToString()
+        ' assert
+        Assert.AreEqual(expectedValue, actualValue)
+    End Sub
+
+    <TestMethod()>
     Public Sub TestJArrayJObjectValue()
         ' arrange
         Dim actualValue As String

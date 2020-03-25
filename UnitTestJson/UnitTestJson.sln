@@ -1,11 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.29306.81
+VisualStudioVersion = 16.0.29911.84
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "UnitTestJson", "UnitTestJson.vbproj", "{E6C3E777-E701-4FDF-9996-08066CBFD386}"
-EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "DA_JsonLibrary", "..\DA_JsonLibrary\DA_JsonLibrary.vbproj", "{F4147720-60EB-4F0E-B74B-CB51B2830B3E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,15 +15,11 @@ Global
 		{E6C3E777-E701-4FDF-9996-08066CBFD386}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E6C3E777-E701-4FDF-9996-08066CBFD386}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E6C3E777-E701-4FDF-9996-08066CBFD386}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F4147720-60EB-4F0E-B74B-CB51B2830B3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F4147720-60EB-4F0E-B74B-CB51B2830B3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F4147720-60EB-4F0E-B74B-CB51B2830B3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F4147720-60EB-4F0E-B74B-CB51B2830B3E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {4BAD666D-78D0-43E0-81A8-3CC45D82BC3F}
+		SolutionGuid = {7261FB3E-703A-43BD-A5D4-2F851CE3E1A3}
 	EndGlobalSection
 EndGlobal
