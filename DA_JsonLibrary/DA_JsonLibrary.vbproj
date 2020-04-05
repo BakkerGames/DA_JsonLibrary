@@ -110,6 +110,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <PropertyGroup>
-    <PostBuildEvent>IF "$(ConfigurationName)"=="Release" XCOPY /Y "$(TargetPath)*" "C:\Dev\EXE"</PostBuildEvent>
+    <PostBuildEvent>IF "$(ConfigurationName)"=="Release" XCOPY /Y "$(TargetPath)*" "$(ProjectDir)..\..\\EXE"</PostBuildEvent>
   </PropertyGroup>
 </Project>
