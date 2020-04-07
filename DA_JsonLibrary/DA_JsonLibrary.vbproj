@@ -10,7 +10,7 @@
     <AssemblyName>DA_JsonLibrary</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>Windows</MyType>
-    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <Deterministic>true</Deterministic>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
@@ -110,6 +110,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <PropertyGroup>
-    <PostBuildEvent>IF "$(ConfigurationName)"=="Release" XCOPY /Y "$(TargetPath)*" "C:\Dev\EXE"</PostBuildEvent>
+    <PostBuildEvent>IF "$(ConfigurationName)"=="Release" XCOPY /Y "$(TargetPath)*" "$(ProjectDir)..\..\EXE"</PostBuildEvent>
   </PropertyGroup>
 </Project>
