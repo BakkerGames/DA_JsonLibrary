@@ -24,18 +24,26 @@ Public Class JArray
         _data = New List(Of Object)
     End Sub
 
+    Public Sub New(list As IEnumerable)
+        ' --- Purpose: Initialize the internal structures of a new JArray with values
+        ' --- Author : Scott Bakker
+        ' --- Created: 09/13/2019
+        _data = New List(Of Object)
+        Append(list)
+    End Sub
+
     Public Function GetEnumerator() As IEnumerator(Of Object) Implements IEnumerable(Of Object).GetEnumerator
         ' --- Purpose: Provide IEnumerable access directly to _data
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
-        Return DirectCast(Me._data, IEnumerable(Of Object)).GetEnumerator()
+        Return DirectCast(_data, IEnumerable(Of Object)).GetEnumerator()
     End Function
 
     Private Function IEnumerable_GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
         ' --- Purpose: Provide IEnumerable access directly to _data
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
-        Return DirectCast(Me._data, IEnumerable(Of Object)).GetEnumerator()
+        Return DirectCast(_data, IEnumerable(Of Object)).GetEnumerator()
     End Function
 
     Public Sub Add(ByVal value As Object)

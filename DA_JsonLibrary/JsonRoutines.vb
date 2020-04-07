@@ -30,7 +30,7 @@ Public NotInheritable Class JsonRoutines
     Friend Const _indentSpaceSize As Integer = 2
 
     Public Shared Function IndentSpace(ByVal indentLevel As Integer) As String
-        ' --- Purpose: Return a string with the proper number of spaces or tabs
+        ' --- Purpose: Return a string with the proper number of spaces
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
         If indentLevel <= 0 Then

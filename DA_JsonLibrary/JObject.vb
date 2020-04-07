@@ -29,18 +29,26 @@ Public Class JObject
         _data = New Dictionary(Of String, Object)
     End Sub
 
+    Public Sub New(jo As JObject)
+        ' --- Purpose: Initialize the internal structures of a new JObject with values
+        ' --- Author : Scott Bakker
+        ' --- Created: 09/13/2019
+        _data = New Dictionary(Of String, Object)
+        Merge(jo)
+    End Sub
+
     Public Function GetEnumerator() As IEnumerator(Of String) Implements IEnumerable(Of String).GetEnumerator
         ' --- Purpose: Provide IEnumerable access directly to _data.Keys
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
-        Return DirectCast(Me._data.Keys, IEnumerable(Of String)).GetEnumerator()
+        Return DirectCast(_data.Keys, IEnumerable(Of String)).GetEnumerator()
     End Function
 
     Private Function IEnumerable_GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
         ' --- Purpose: Provide IEnumerable access directly to _data.Keys
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
-        Return DirectCast(Me._data.Keys, IEnumerable(Of String)).GetEnumerator()
+        Return DirectCast(_data.Keys, IEnumerable(Of String)).GetEnumerator()
     End Function
 
     Public Sub Add(ByVal key As String, ByVal value As Object)
@@ -134,7 +142,7 @@ Public Class JObject
         End If
         For Each key As String In jo
             If IsWhitespaceString(key) Then
-                Throw New ArgumentNullException(NameOf(key), "JSON Error: Key cannot be null/empty/whitespace")
+                Throw New SystemException("JSON Error: Key cannot be null/empty/whitespace")
             End If
             If _data.ContainsKey(key) Then
                 ' --- Overwrite current value with new one
@@ -156,7 +164,7 @@ Public Class JObject
         End If
         For Each kv As KeyValuePair(Of String, Object) In dict
             If IsWhitespaceString(kv.Key) Then
-                Throw New ArgumentNullException(NameOf(kv.Key), "JSON Error: Key cannot be null/empty/whitespace")
+                Throw New SystemException("JSON Error: Key cannot be null/empty/whitespace")
             End If
             If _data.ContainsKey(kv.Key) Then
                 ' --- Overwrite current value with new one
