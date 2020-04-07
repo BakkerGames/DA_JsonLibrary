@@ -405,9 +405,9 @@ Public Class UnitTestJObject
         ' Note: Works in Eastern US time zone, others will fail
         ' arrange
         Dim actualValue As String
-        Dim expectedValue As String = "{""key"":""2017-01-02 16:42:25-05:00""}"
+        Dim expectedValue As String = "{""key"":""2017-01-02T16:42:25-05:00""}"
         Dim jo As New JObject
-        jo.Add("key", DateTimeOffset.Parse("01/02/2017 16:42:25"))
+        jo.Add("key", DateTimeOffset.Parse("2017-01-02T16:42:25-05:00"))
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -419,9 +419,9 @@ Public Class UnitTestJObject
         ' Note: Works in Eastern US time zone, others will fail
         ' arrange
         Dim actualValue As String
-        Dim expectedValue As String = "{""key"":""2017-01-02 16:42:25.1234567-05:00""}"
+        Dim expectedValue As String = "{""key"":""2017-01-02T16:42:25.1234567-05:00""}"
         Dim jo As New JObject
-        jo.Add("key", DateTimeOffset.Parse("01/02/2017 16:42:25.1234567"))
+        jo.Add("key", DateTimeOffset.Parse("2017-01-02T16:42:25.1234567-05:00"))
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -436,14 +436,30 @@ Public Class UnitTestJObject
         jo.Add("timemilli", "23:59:59.123")
         jo.Add("datetime", "2020-02-15 23:59:59")
         jo.Add("datetimemilli", "2020-02-15 23:59:59.123")
-        jo.Add("justastring", "02/01/2020")
+        jo.Add("stringdate", "02/01/2020")
         Dim jo1 As JObject = JObject.Parse(jo.ToString)
-        If Not jo1("date").GetType() = GetType(Date) OrElse
-           Not jo1("time").GetType() = GetType(Date) OrElse
-           Not jo1("timemilli").GetType() = GetType(Date) OrElse
-           Not jo1("datetime").GetType() = GetType(Date) OrElse
-           Not jo1("datetimemilli").GetType() = GetType(Date) OrElse
-           Not jo1("justastring").GetType() = GetType(String) Then
+        If Not jo1("date").GetType() = GetType(Date) Then
+            Assert.IsTrue(False)
+            Exit Sub
+        End If
+        If Not jo1("time").GetType() = GetType(String) Then
+            Assert.IsTrue(False)
+            Exit Sub
+        End If
+        If Not jo1("timemilli").GetType() = GetType(String) Then
+            Assert.IsTrue(False)
+            Exit Sub
+        End If
+        If Not jo1("datetime").GetType() = GetType(Date) Then
+            Assert.IsTrue(False)
+            Exit Sub
+        End If
+        If Not jo1("datetimemilli").GetType() = GetType(Date) Then
+            Assert.IsTrue(False)
+            Exit Sub
+        End If
+        If Not jo1("stringdate").GetType() = GetType(Date) Then
+            Dim s As String = jo1("stringdate").GetType().ToString
             Assert.IsTrue(False)
             Exit Sub
         End If
@@ -453,13 +469,13 @@ Public Class UnitTestJObject
     <TestMethod()>
     Public Sub TestJObjectDateTimeOffsetMultiFormat()
         Dim jo As New JObject
-        jo.Add("datetimeoffset", "2020-02-01 12:23:34-05:00")
-        jo.Add("datetimeoffsetmilli", "2020-02-01 12:23:34.1234567-05:00")
-        jo.Add("justastring", "02/01/2020")
+        jo.Add("datetimeoffset", "2020-02-01T12:23:34-05:00")
+        jo.Add("datetimeoffsetmilli", "2020-02-01T12:23:34.1234567-05:00")
+        jo.Add("stringdate", "02/01/2020")
         Dim jo1 As JObject = JObject.Parse(jo.ToString)
         If Not jo1("datetimeoffset").GetType() = GetType(DateTimeOffset) OrElse
            Not jo1("datetimeoffsetmilli").GetType() = GetType(DateTimeOffset) OrElse
-           Not jo1("justastring").GetType() = GetType(String) Then
+           Not jo1("stringdate").GetType() = GetType(Date) Then
             Assert.IsTrue(False)
             Exit Sub
         End If
@@ -481,7 +497,7 @@ Public Class UnitTestJObject
 
     <TestMethod()>
     Public Sub TestJObjectDateTimeOffsetFromString()
-        Dim s As String = "{""key"":""2020-02-01 12:23:34-05:00""}"
+        Dim s As String = "{""key"":""2020-02-01T12:23:34-05:00""}"
         Dim jo As JObject = JObject.Parse(s)
         Dim actualValue As Object
         actualValue = jo("key")

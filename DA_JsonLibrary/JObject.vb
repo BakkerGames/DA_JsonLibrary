@@ -1,6 +1,7 @@
 ' --- Purpose: Provide a JSON Object class
 ' --- Author : Scott Bakker
 ' --- Created: 09/13/2019
+' --- LastMod: 04/06/2020
 
 ' --- Notes  : The keys in this JObject implementation are case sensitive, so "abc" <> "ABC".
 ' ---        : Keys cannot be null, empty, or contain only whitespace.
@@ -92,22 +93,21 @@ Public Class JObject
             If Not _data.ContainsKey(key) Then
                 Throw New SystemException($"JSON Error: Key not found: {key}")
             End If
-            Return _data.Item(key)
+            Return _data(key)
         End Get
         Set(value As Object)
             If IsWhitespaceString(key) Then
                 Throw New ArgumentNullException(NameOf(key), "JSON Error: Key cannot be null/empty/whitespace")
+            End If
+            If Not _data.ContainsKey(key) Then
+                Throw New SystemException($"JSON Error: Key not found: {key}")
             End If
             If value IsNot Nothing Then
                 If value.GetType Is String.Empty.GetType Then
                     value = FromJsonString(CStr(value))
                 End If
             End If
-            If _data.ContainsKey(key) Then
-                _data.Item(key) = value
-            Else
-                _data.Add(key, value)
-            End If
+            _data(key) = value
         End Set
     End Property
 
@@ -138,29 +138,29 @@ Public Class JObject
             End If
             If _data.ContainsKey(key) Then
                 ' --- Overwrite current value with new one
-                Me.Item(key) = jo.Item(key)
+                Me(key) = jo(key)
             Else
-                Me.Add(key, jo.Item(key))
+                Me.Add(key, jo(key))
             End If
         Next
     End Sub
 
-    Public Sub Merge(ByVal d As Dictionary(Of String, Object))
+    Public Sub Merge(ByVal dict As Dictionary(Of String, Object))
         ' --- Purpose: Merge a dictionary into the current JObject
         ' --- Author : Scott Bakker
         ' --- Created: 02/11/2020
         ' --- Notes  : If any keys are duplicated, the new value overwrites the current value
         ' ---        : This is processed one key/value at a time to trap errors.
-        If d Is Nothing OrElse d.Count = 0 Then
+        If dict Is Nothing OrElse dict.Count = 0 Then
             Exit Sub
         End If
-        For Each kv As KeyValuePair(Of String, Object) In d
+        For Each kv As KeyValuePair(Of String, Object) In dict
             If IsWhitespaceString(kv.Key) Then
                 Throw New ArgumentNullException(NameOf(kv.Key), "JSON Error: Key cannot be null/empty/whitespace")
             End If
             If _data.ContainsKey(kv.Key) Then
                 ' --- Overwrite current value with new one
-                Me.Item(kv.Key) = kv.Value
+                Me(kv.Key) = kv.Value
             Else
                 Me.Add(kv.Key, kv.Value)
             End If
@@ -236,46 +236,43 @@ Public Class JObject
         ' --- Purpose: Convert this JObject into a string with formatting
         ' --- Author : Scott Bakker
         ' --- Created: 10/17/2019
-        Dim result As New StringBuilder
         If _data.Count = 0 Then
-            result.Append("{}")
-        Else
-            result.Append("{")
-            If indentLevel >= 0 Then
-                result.AppendLine()
-                indentLevel += 1
-            End If
-            Dim addComma As Boolean = False
-            For Each kv As KeyValuePair(Of String, Object) In _data
-                If addComma Then
-                    result.Append(",")
-                    If indentLevel >= 0 Then
-                        result.AppendLine()
-                    End If
-                Else
-                    addComma = True
-                End If
-                If indentLevel > 0 Then
-                    result.Append(Space(indentLevel * _indentSpaceSize))
-                End If
-                result.Append(ValueToString(kv.Key))
-                result.Append(":")
+            Return "{}" ' avoid indent errors
+        End If
+        Dim result As New StringBuilder
+        result.Append("{")
+        If indentLevel >= 0 Then
+            result.AppendLine()
+            indentLevel += 1
+        End If
+        Dim addComma As Boolean = False
+        For Each kv As KeyValuePair(Of String, Object) In _data
+            If addComma Then
+                result.Append(",")
                 If indentLevel >= 0 Then
-                    result.Append(" ")
+                    result.AppendLine()
                 End If
-                result.Append(ValueToString(kv.Value, indentLevel))
-            Next
-            If indentLevel >= 0 Then
-                result.AppendLine()
+            Else
+                addComma = True
             End If
+            If indentLevel > 0 Then
+                result.Append(IndentSpace(indentLevel))
+            End If
+            result.Append(ValueToString(kv.Key))
+            result.Append(":")
+            If indentLevel >= 0 Then
+                result.Append(" ")
+            End If
+            result.Append(ValueToString(kv.Value, indentLevel))
+        Next
+        If indentLevel >= 0 Then
+            result.AppendLine()
             If indentLevel > 0 Then
                 indentLevel -= 1
             End If
-            If indentLevel > 0 Then
-                result.Append(Space(indentLevel * _indentSpaceSize))
-            End If
-            result.Append("}")
+            result.Append(IndentSpace(indentLevel))
         End If
+        result.Append("}")
         Return result.ToString()
     End Function
 
@@ -288,10 +285,10 @@ Public Class JObject
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
         Dim pos As Integer = 0
-        Return Parse(pos, value)
+        Return Parse(value, pos)
     End Function
 
-    Friend Shared Function Parse(ByRef pos As Integer, ByVal value As String) As JObject
+    Friend Shared Function Parse(ByVal value As String, ByRef pos As Integer) As JObject
         ' --- Purpose: Convert a partial string into a JObject
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
@@ -301,52 +298,56 @@ Public Class JObject
         Dim result As New JObject
         Dim tempKey As String
         Dim tempValue As String
-        SkipWhitespace(pos, value)
+        SkipWhitespace(value, pos)
         If value(pos) <> "{" Then
             Throw New SystemException($"JSON Error: Unexpected token to start JObject: {value(pos)}")
         End If
         pos += 1
         Do
-            SkipWhitespace(pos, value)
+            SkipWhitespace(value, pos)
             ' --- check for symbols
             If value(pos) = "}" Then
                 pos += 1
                 Exit Do ' --- done building JObject
             End If
             If value(pos) = "," Then
+                ' --- this logic ignores extra commas, but is ok
                 pos += 1
                 Continue Do ' --- Next key/value
             End If
             ' --- Get key string
-            tempKey = GetToken(pos, value)
-            If tempKey IsNot Nothing Then
-                If Not tempKey.StartsWith("""", StringComparison.Ordinal) AndAlso
-                   Not tempKey.EndsWith("""", StringComparison.Ordinal) Then
-                    Throw New SystemException($"JSON Error: Invalid key format: {tempKey}")
-                End If
+            tempKey = GetToken(value, pos)
+            If IsWhitespaceString(tempKey) Then
+                Throw New SystemException("JSON Error: Key cannot be null/empty/whitespace")
+            End If
+            If tempKey.Length <= 2 OrElse
+               Not tempKey.StartsWith("""", StringComparison.Ordinal) OrElse
+               Not tempKey.EndsWith("""", StringComparison.Ordinal) Then
+                Throw New SystemException($"JSON Error: Invalid key format: {tempKey}")
             End If
             ' --- Convert to usable key
             tempKey = JsonValueToObject(tempKey).ToString
             If IsWhitespaceString(tempKey) Then
-                Throw New ArgumentNullException(NameOf(tempKey), "JSON Error: Key cannot be null/empty/whitespace")
+                Throw New SystemException("JSON Error: Key cannot be null/empty/whitespace")
             End If
             ' --- Check for ":" between key and value
-            If GetToken(pos, value) <> ":" Then
+            SkipWhitespace(value, pos)
+            If GetToken(value, pos) <> ":" Then
                 Throw New SystemException($"JSON Error: Missing colon: {tempKey}")
             End If
             ' --- Check for JObject, JArray
-            SkipWhitespace(pos, value)
+            SkipWhitespace(value, pos)
             If value(pos) = "{" Then
-                Dim jo As JObject = Parse(pos, value)
+                Dim jo As JObject = Parse(value, pos)
                 result.Add(tempKey, jo)
                 Continue Do
             End If
             If value(pos) = "[" Then
-                Dim ja As JArray = JArray.Parse(pos, value)
+                Dim ja As JArray = JArray.Parse(value, pos)
                 result.Add(tempKey, ja)
                 Continue Do
             End If
-            tempValue = GetToken(pos, value)
+            tempValue = GetToken(value, pos)
             result.Add(tempKey, JsonValueToObject(tempValue))
         Loop
         Return result

@@ -1,6 +1,7 @@
 ﻿' --- Purpose: Provide a JSON Array class
 ' --- Author : Scott Bakker
 ' --- Created: 09/13/2019
+' --- LastMod: 04/06/2020
 
 ' --- Notes  : The values in the list ARE ordered based on when they are added.
 ' ---        : The values are NOT sorted, and there can be duplicates.
@@ -63,7 +64,7 @@ Public Class JArray
         Return _data.Count
     End Function
 
-    Public Property Item(ByVal index As Integer) As Object
+    Default Public Property Item(ByVal index As Integer) As Object
         ' --- Purpose: Give access to item values by index
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
@@ -71,18 +72,18 @@ Public Class JArray
             If index < 0 OrElse index >= _data.Count Then
                 Throw New IndexOutOfRangeException
             End If
-            Return _data.Item(index)
+            Return _data(index)
         End Get
         Set(value As Object)
+            If index < 0 OrElse index >= _data.Count Then
+                Throw New IndexOutOfRangeException
+            End If
             If value IsNot Nothing Then
                 If value.GetType Is String.Empty.GetType Then
                     value = FromJsonString(CStr(value))
                 End If
             End If
-            If index < 0 OrElse index >= _data.Count Then
-                Throw New IndexOutOfRangeException
-            End If
-            _data.Item(index) = value
+            _data(index) = value
         End Set
     End Property
 
@@ -109,6 +110,8 @@ Public Class JArray
         ' --- Purpose: Convert this JArray into a string
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
+        ' --- Notes  : This could be implemented as ToStringFormatted(-1) but
+        ' ---          it is separate to get better performance.
         Dim result As New StringBuilder
         result.Append("[")
         Dim addComma As Boolean = False
@@ -136,41 +139,38 @@ Public Class JArray
         ' --- Purpose: Convert this JArray into a string with formatting
         ' --- Author : Scott Bakker
         ' --- Created: 10/17/2019
-        Dim result As New StringBuilder
         If _data.Count = 0 Then
-            result.Append("[]")
-        Else
-            result.Append("[")
-            If indentLevel >= 0 Then
-                result.AppendLine()
-                indentLevel += 1
-            End If
-            Dim addComma As Boolean = False
-            For Each value As Object In _data
-                If addComma Then
-                    result.Append(",")
-                    If indentLevel >= 0 Then
-                        result.AppendLine()
-                    End If
-                Else
-                    addComma = True
+            Return "[]" ' avoid indent errors
+        End If
+        Dim result As New StringBuilder
+        result.Append("[")
+        If indentLevel >= 0 Then
+            result.AppendLine()
+            indentLevel += 1
+        End If
+        Dim addComma As Boolean = False
+        For Each value As Object In _data
+            If addComma Then
+                result.Append(",")
+                If indentLevel >= 0 Then
+                    result.AppendLine()
                 End If
-                If indentLevel > 0 Then
-                    result.Append(Space(indentLevel * _indentSpaceSize))
-                End If
-                result.Append(ValueToString(value, indentLevel))
-            Next
-            If indentLevel >= 0 Then
-                result.AppendLine()
+            Else
+                addComma = True
             End If
+            If indentLevel > 0 Then
+                result.Append(IndentSpace(indentLevel))
+            End If
+            result.Append(ValueToString(value, indentLevel))
+        Next
+        If indentLevel >= 0 Then
+            result.AppendLine()
             If indentLevel > 0 Then
                 indentLevel -= 1
             End If
-            If indentLevel > 0 Then
-                result.Append(Space(indentLevel * _indentSpaceSize))
-            End If
-            result.Append("]")
+            result.Append(IndentSpace(indentLevel))
         End If
+        result.Append("]")
         Return result.ToString()
     End Function
 
@@ -183,10 +183,10 @@ Public Class JArray
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
         Dim pos As Integer = 0
-        Return Parse(pos, value)
+        Return Parse(value, pos)
     End Function
 
-    Friend Shared Function Parse(ByRef pos As Integer, ByVal value As String) As JArray
+    Friend Shared Function Parse(ByVal value As String, ByRef pos As Integer) As JArray
         ' --- Purpose: Convert a partial string into a JArray
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
@@ -195,35 +195,36 @@ Public Class JArray
         End If
         Dim result As New JArray
         Dim tempValue As String
-        SkipWhitespace(pos, value)
+        SkipWhitespace(value, pos)
         If value(pos) <> "[" Then
             Throw New SystemException($"JSON Error: Unexpected token to start JArray: {value(pos)}")
         End If
         pos += 1
         Do
-            SkipWhitespace(pos, value)
+            SkipWhitespace(value, pos)
             ' --- check for symbols
             If value(pos) = "]" Then
                 pos += 1
                 Exit Do ' --- done building JArray
             End If
             If value(pos) = "," Then
+                ' --- this logic ignores extra commas, but is ok
                 pos += 1
-                Continue Do ' --- Next key/value
+                Continue Do ' --- Next value
             End If
             ' --- Check for JArray, JArray
             If value(pos) = "{" Then
-                Dim jo As JObject = JObject.Parse(pos, value)
+                Dim jo As JObject = JObject.Parse(value, pos)
                 result.Add(jo)
                 Continue Do
             End If
             If value(pos) = "[" Then
-                Dim ja As JArray = Parse(pos, value)
+                Dim ja As JArray = Parse(value, pos)
                 result.Add(ja)
                 Continue Do
             End If
             ' --- Get value as a string, convert to object
-            tempValue = GetToken(pos, value)
+            tempValue = GetToken(value, pos)
             result.Add(JsonValueToObject(tempValue))
         Loop
         Return result
