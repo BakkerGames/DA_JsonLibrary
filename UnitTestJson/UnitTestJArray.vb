@@ -129,7 +129,7 @@ Public Class UnitTestJArray
         Dim ja As New JArray
         ja.Add(123.45)
         Dim jo As New JObject()
-        jo.Add("key", "value")
+        jo("key") = "value"
         ja.Add(jo)
         ' act
         actualValue = ja.ToString()
@@ -150,7 +150,7 @@ Public Class UnitTestJArray
         Dim ja As New JArray
         ja.Add(123.45)
         Dim jo As New JObject()
-        jo.Add("key", "value")
+        jo("key") = "value"
         ja.Add(jo)
         ' act
         actualValue = ja.ToStringFormatted()
@@ -336,7 +336,10 @@ Public Class UnitTestJArray
         ' arrange
         Dim actualValue As String
         Dim expectedValue As String = "[1,2,3,4]"
-        Dim ja1 As JArray = JArray.Parse("/*comment*/[/*comment*/1,//comment" & vbCrLf & "2,/*comment*/3,/*comment*/4/*comment*/]//comment")
+        Dim parseValue As String = "/*comment*/[/*comment*/1,//comment" &
+                                   vbCrLf &
+                                   "2,/*comment*/3,/*comment*/4/*comment*/]//comment"
+        Dim ja1 As JArray = JArray.Parse(parseValue)
         ' act
         actualValue = ja1.ToString()
         ' assert

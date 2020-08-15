@@ -14,9 +14,9 @@ Module Module1
     Private Sub Test1()
         Try
             Dim jo As New JObject
-            jo.Add("ABC", 123)
-            jo.Add("abc", 456.789)
-            jo.Add("zzzz", 000.000)
+            jo("ABC") = 123
+            jo("abc") = 456.789
+            jo("zzzz") = 000.000
             Console.WriteLine(jo.ToString)
             ' ---
             Dim ja As New JArray

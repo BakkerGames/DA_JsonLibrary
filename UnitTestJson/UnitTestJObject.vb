@@ -21,7 +21,7 @@ Public Class UnitTestJObject
         Dim jo As New JObject
         Try
             ' act
-            jo.Add(Nothing, 123)
+            jo(Nothing) = 123
         Catch ex As ArgumentNullException
             ' succeeded
             Assert.IsTrue(True)
@@ -40,7 +40,7 @@ Public Class UnitTestJObject
         Dim jo As New JObject
         Try
             ' act
-            jo.Add("", 123)
+            jo("") = 123
         Catch ex As ArgumentNullException
             ' succeeded
             Assert.IsTrue(True)
@@ -59,7 +59,7 @@ Public Class UnitTestJObject
         Dim jo As New JObject
         Try
             ' act
-            jo.Add("   " & vbTab & vbCrLf, 123)
+            jo("   " & vbTab & vbCrLf) = 123
         Catch ex As ArgumentNullException
             ' succeeded
             Assert.IsTrue(True)
@@ -78,7 +78,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":null}"
         Dim jo As New JObject
-        jo.Add("key", Nothing)
+        jo("key") = Nothing
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -91,7 +91,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":false}"
         Dim jo As New JObject
-        jo.Add("key", False)
+        jo("key") = False
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -104,7 +104,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":true}"
         Dim jo As New JObject
-        jo.Add("key", True)
+        jo("key") = True
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -117,7 +117,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":""abc""}"
         Dim jo As New JObject
-        jo.Add("key", "abc")
+        jo("key") = "abc"
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -126,11 +126,12 @@ Public Class UnitTestJObject
 
     <TestMethod()>
     Public Sub TestJObjectStringValueCtrlChars()
+        ' --- Note: Be careful converting literal strings with "\" between VB and C#
         ' arrange
         Dim actualValue As String
-        Dim expectedValue As String = "{""key"":""\\r\\n\\t\\b\\f\\u00a3""}"
+        Dim expectedValue As String = "{""key"":""\\r\\n\\t\\b\\f\\u00a3\\""}"
         Dim jo As New JObject
-        jo.Add("key", "\r\n\t\b\f\u00a3")
+        jo("key") = "\r\n\t\b\f\u00a3\"
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -139,11 +140,13 @@ Public Class UnitTestJObject
 
     <TestMethod()>
     Public Sub TestJObjectStringActualCtrlChars()
+        ' --- Note: Be careful converting literal strings with "\" between VB and C#
         ' arrange
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":""\r\n\t\b\f\""\u00a3\""\u0000\\""}"
         Dim jo As New JObject
-        jo.Add("key", $"{vbCr}{vbLf}{vbTab}{vbBack}{vbFormFeed}""£""{Chr(0)}\")
+        Dim value As String = $"{vbCr}{vbLf}{vbTab}{vbBack}{vbFormFeed}""£""{Chr(0)}\"
+        jo("key") = value
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -156,7 +159,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":123}"
         Dim jo As New JObject
-        jo.Add("key", 123)
+        jo("key") = 123
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -169,7 +172,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":2147483647}"
         Dim jo As New JObject
-        jo.Add("key", Integer.MaxValue)
+        jo("key") = Integer.MaxValue
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -183,7 +186,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":-2147483648}"
         Dim jo As New JObject
-        jo.Add("key", Integer.MinValue)
+        jo("key") = Integer.MinValue
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -196,7 +199,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":2147483648}"
         Dim jo As New JObject
-        jo.Add("key", CLng(Integer.MaxValue) + 1)
+        jo("key") = CLng(Integer.MaxValue) + 1
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -209,7 +212,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":-2147483649}"
         Dim jo As New JObject
-        jo.Add("key", CLng(Integer.MinValue) - 1)
+        jo("key") = CLng(Integer.MinValue) - 1
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -222,7 +225,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":9223372036854775807}"
         Dim jo As New JObject
-        jo.Add("key", Long.MaxValue)
+        jo("key") = Long.MaxValue
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -236,7 +239,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":-9223372036854775808}"
         Dim jo As New JObject
-        jo.Add("key", Long.MinValue)
+        jo("key") = Long.MinValue
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -249,7 +252,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":9223372036854775808}"
         Dim jo As New JObject
-        jo.Add("key", CDec(Long.MaxValue) + 1)
+        jo("key") = CDec(Long.MaxValue) + 1
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -262,7 +265,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":-9223372036854775809}"
         Dim jo As New JObject
-        jo.Add("key", CDec(Long.MinValue) - 1)
+        jo("key") = CDec(Long.MinValue) - 1
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -275,7 +278,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":3.14159265358979}"
         Dim jo As New JObject
-        jo.Add("key", Math.PI)
+        jo("key") = Math.PI
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -288,7 +291,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":123.45}"
         Dim jo As New JObject
-        jo.Add("key", 123.45)
+        jo("key") = 123.45
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -313,10 +316,10 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""abc"":1,""ABC"":-1,""def"":2,""xyz"":99}"
         Dim jo As New JObject
-        jo.Add("abc", 1)
-        jo.Add("ABC", -1)
-        jo.Add("xyz", 99)
-        jo.Add("def", 2)
+        jo("abc") = 1
+        jo("ABC") = -1
+        jo("xyz") = 99
+        jo("def") = 2
         ' act
         actualValue = jo.ToStringSorted()
         ' assert
@@ -365,7 +368,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":""2017-01-02""}"
         Dim jo As New JObject
-        jo.Add("key", Date.Parse("01/02/2017"))
+        jo("key") = Date.Parse("01/02/2017")
         ' act
         actualValue = jo.ToString()
         Console.WriteLine(expectedValue)
@@ -380,7 +383,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":""2017-01-02 16:42:25""}"
         Dim jo As New JObject
-        jo.Add("key", Date.Parse("01/02/2017 16:42:25"))
+        jo("key") = Date.Parse("01/02/2017 16:42:25")
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -393,7 +396,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":""2017-01-02 16:42:25.123""}"
         Dim jo As New JObject
-        jo.Add("key", Date.Parse("01/02/2017 16:42:25.123"))
+        jo("key") = Date.Parse("01/02/2017 16:42:25.123")
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -407,7 +410,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":""2017-01-02T16:42:25-05:00""}"
         Dim jo As New JObject
-        jo.Add("key", DateTimeOffset.Parse("2017-01-02T16:42:25-05:00"))
+        jo("key") = DateTimeOffset.Parse("2017-01-02T16:42:25-05:00")
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -421,7 +424,7 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":""2017-01-02T16:42:25.1234567-05:00""}"
         Dim jo As New JObject
-        jo.Add("key", DateTimeOffset.Parse("2017-01-02T16:42:25.1234567-05:00"))
+        jo("key") = DateTimeOffset.Parse("2017-01-02T16:42:25.1234567-05:00")
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -431,22 +434,22 @@ Public Class UnitTestJObject
     <TestMethod()>
     Public Sub TestJObjectDateTimeMultiFormat()
         Dim jo As New JObject
-        jo.Add("date", "2020-02-15")
-        jo.Add("time", "23:59:59")
-        jo.Add("timemilli", "23:59:59.123")
-        jo.Add("datetime", "2020-02-15 23:59:59")
-        jo.Add("datetimemilli", "2020-02-15 23:59:59.123")
-        jo.Add("stringdate", "02/01/2020")
+        jo("date") = "2020-02-15"
+        jo("time") = "23:59:59"
+        jo("timemilli") = "23:59:59.123"
+        jo("datetime") = "2020-02-15 23:59:59"
+        jo("datetimemilli") = "2020-02-15 23:59:59.123"
+        jo("stringdate") = "02/01/2020"
         Dim jo1 As JObject = JObject.Parse(jo.ToString)
         If Not jo1("date").GetType() = GetType(Date) Then
             Assert.IsTrue(False)
             Exit Sub
         End If
-        If Not jo1("time").GetType() = GetType(String) Then
+        If Not jo1("time").GetType() = GetType(TimeSpan) Then
             Assert.IsTrue(False)
             Exit Sub
         End If
-        If Not jo1("timemilli").GetType() = GetType(String) Then
+        If Not jo1("timemilli").GetType() = GetType(TimeSpan) Then
             Assert.IsTrue(False)
             Exit Sub
         End If
@@ -469,9 +472,9 @@ Public Class UnitTestJObject
     <TestMethod()>
     Public Sub TestJObjectDateTimeOffsetMultiFormat()
         Dim jo As New JObject
-        jo.Add("datetimeoffset", "2020-02-01T12:23:34-05:00")
-        jo.Add("datetimeoffsetmilli", "2020-02-01T12:23:34.1234567-05:00")
-        jo.Add("stringdate", "02/01/2020")
+        jo("datetimeoffset") = "2020-02-01T12:23:34-05:00"
+        jo("datetimeoffsetmilli") = "2020-02-01T12:23:34.1234567-05:00"
+        jo("stringdate") = "02/01/2020"
         Dim jo1 As JObject = JObject.Parse(jo.ToString)
         If Not jo1("datetimeoffset").GetType() = GetType(DateTimeOffset) OrElse
            Not jo1("datetimeoffsetmilli").GetType() = GetType(DateTimeOffset) OrElse
@@ -515,8 +518,8 @@ Public Class UnitTestJObject
         Dim expectedValue As String = "{""key"":{""newkey"":456}}"
         Dim jo As New JObject
         Dim jo2 As New JObject()
-        jo2.Add("newkey", 456)
-        jo.Add("key", jo2)
+        jo2("newkey") = 456
+        jo("key") = jo2
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -534,8 +537,8 @@ Public Class UnitTestJObject
                                       "}"
         Dim jo As New JObject
         Dim jo2 As New JObject()
-        jo2.Add("newkey", 456)
-        jo.Add("key", jo2)
+        jo2("newkey") = 456
+        jo("key") = jo2
         ' act
         actualValue = jo.ToStringFormatted()
         ' assert
@@ -551,7 +554,7 @@ Public Class UnitTestJObject
         Dim ja As JArray = New JArray()
         ja.Add("newkey")
         ja.Add(456)
-        jo.Add("key", ja)
+        jo("key") = ja
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -572,7 +575,7 @@ Public Class UnitTestJObject
         Dim ja As JArray = New JArray()
         ja.Add("newkey")
         ja.Add(456)
-        jo.Add("key", ja)
+        jo("key") = ja
         ' act
         actualValue = jo.ToStringFormatted()
         ' assert
@@ -585,8 +588,8 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":123,""otherkey"":789.12}"
         Dim jo As New JObject
-        jo.Add("key", 123)
-        jo.Add("otherkey", 789.12)
+        jo("key") = 123
+        jo("otherkey") = 789.12
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -612,7 +615,7 @@ Public Class UnitTestJObject
         Dim expectedValue As String = "{""array"":[1,2,3,4]}"
         Dim ia As Integer() = {1, 2, 3, 4}
         Dim jo As New JObject
-        jo.Add("array", ia)
+        jo("array") = ia
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -626,7 +629,7 @@ Public Class UnitTestJObject
         Dim expectedValue As String = "{""list"":[1,2,3,4]}"
         Dim ia As List(Of Integer) = {1, 2, 3, 4}.ToList
         Dim jo As New JObject
-        jo.Add("list", ia)
+        jo("list") = ia
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -639,11 +642,11 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""firstitem"":1,""seconditem"":2,""thirditem"":3,""fourthitem"":4}"
         Dim jo1 As New JObject
-        jo1.Add("firstitem", 1)
-        jo1.Add("seconditem", 2)
+        jo1("firstitem") = 1
+        jo1("seconditem") = 2
         Dim jo2 As JObject = JObject.Clone(jo1)
-        jo2.Add("thirditem", 3)
-        jo2.Add("fourthitem", 4)
+        jo2("thirditem") = 3
+        jo2("fourthitem") = 4
         ' act
         actualValue = jo2.ToString()
         ' assert
@@ -656,11 +659,11 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""firstitem"":1,""seconditem"":2,""thirditem"":3,""fourthitem"":4}"
         Dim jo1 As New JObject
-        jo1.Add("firstitem", 1)
-        jo1.Add("seconditem", 2)
+        jo1("firstitem") = 1
+        jo1("seconditem") = 2
         Dim jo2 As New JObject
-        jo2.Add("thirditem", 3)
-        jo2.Add("fourthitem", 4)
+        jo2("thirditem") = 3
+        jo2("fourthitem") = 4
         jo1.Merge(jo2)
         ' act
         actualValue = jo1.ToString()
@@ -674,11 +677,11 @@ Public Class UnitTestJObject
         Dim actualValue As String
         Dim expectedValue As String = "{""firstitem"":3,""seconditem"":2,""fourthitem"":4}"
         Dim jo1 As New JObject()
-        jo1.Add("firstitem", 1)
-        jo1.Add("seconditem", 2)
+        jo1("firstitem") = 1
+        jo1("seconditem") = 2
         Dim jo2 As New JObject()
-        jo2.Add("firstitem", 3)
-        jo2.Add("fourthitem", 4)
+        jo2("firstitem") = 3
+        jo2("fourthitem") = 4
         jo1.Merge(jo2)
         ' act
         actualValue = jo1.ToString()
@@ -762,10 +765,10 @@ Public Class UnitTestJObject
         Dim actualValue As String = ""
         Dim expectedValue As String = "firstitem,seconditem,thirditem,fourthitem,"
         Dim jo1 As New JObject()
-        jo1.Add("firstitem", 1)
-        jo1.Add("seconditem", 2)
-        jo1.Add("thirditem", 3)
-        jo1.Add("fourthitem", 4)
+        jo1("firstitem") = 1
+        jo1("seconditem") = 2
+        jo1("thirditem") = 3
+        jo1("fourthitem") = 4
         ' act
         For Each s As String In jo1
             actualValue += s + ","

@@ -27,10 +27,13 @@ Public NotInheritable Class JsonRoutines
     Private Const _dateTimeOffsetFormat As String = "yyyy-MM-ddTHH:mm:sszzz"
     Private Const _dateTimeOffsetMilliFormat As String = "yyyy-MM-ddTHH:mm:ss.fffffffzzz"
 
+    ' --- TimeSpan formats are very different
+    Private Const _timeSpanFormat As String = "c" ' [-][d'.']hh':'mm':'ss['.'fffffff]
+
     Friend Const _indentSpaceSize As Integer = 2
 
     Public Shared Function IndentSpace(ByVal indentLevel As Integer) As String
-        ' --- Purpose: Return a string with the proper number of spaces
+        ' --- Purpose: Return a string with the proper number of spaces or tabs
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
         If indentLevel <= 0 Then
@@ -185,6 +188,9 @@ Public NotInheritable Class JsonRoutines
                     Return $"""{d.ToString(_dateTimeMilliFormat, Nothing)}"""
                 End If
 
+            Case GetType(TimeSpan)
+                Return CType(value, TimeSpan).ToString(_timeSpanFormat)
+
             Case GetType(JObject)
                 Return CType(value, JObject).ToStringFormatted(indentLevel)
 
@@ -237,6 +243,7 @@ Public NotInheritable Class JsonRoutines
         ' --- Purpose: Convert a string with escaped characters into control codes
         ' --- Author : Scott Bakker
         ' --- Created: 09/17/2019
+        ' --- LastMod: 05/12/2020
         If value Is Nothing Then
             Return Nothing
         End If
@@ -286,6 +293,9 @@ Public NotInheritable Class JsonRoutines
                 result.Append(c)
             End If
         Next
+        If lastBackslash Then
+            Throw New SystemException($"JSON Error: Unexpected trailing backslash")
+        End If
         Return result.ToString
     End Function
 
@@ -376,14 +386,14 @@ Public NotInheritable Class JsonRoutines
             If value.StartsWith("""", StringComparison.Ordinal) AndAlso
                value.EndsWith("""", StringComparison.Ordinal) Then
                 value = value.Substring(1, value.Length - 2) ' remove quotes
-                If IsTimeOnlyValue(value) Then
-                    Return value ' Return time as a string
+                If IsTimeSpanValue(value) Then
+                    Return TimeSpan.Parse(value)
                 End If
                 If IsDateTimeOffsetValue(value) Then
                     Return DateTimeOffset.Parse(value)
                 End If
                 If IsDateTimeValue(value) Then
-                    Return DateTime.Parse(value)
+                    Return Date.Parse(value)
                 End If
                 ' --- Parse all escaped sequences to chars
                 Return FromJsonString(value)
@@ -549,17 +559,17 @@ Public NotInheritable Class JsonRoutines
         Return False
     End Function
 
-    Private Shared Function IsTimeOnlyValue(ByVal value As String) As Boolean
-        ' --- Purpose: Determine if value converts to a Time without a Date
+    Private Shared Function IsTimeSpanValue(ByVal value As String) As Boolean
+        ' --- Purpose: Determine if value converts to a TimeSpan
         ' --- Author : Scott Bakker
-        ' --- Created: 04/06/2020
+        ' --- Created: 04/27/2020
         If String.IsNullOrEmpty(value) Then Return False
         If Not value.Contains(":") Then Return False
         If value.Contains("/") Then Return False
-        If value.Contains("-") Then Return False
-        Dim tempValue As Date
-        ' --- Try to convert using a dummy date
-        If Date.TryParse($"{Date.MinValue:yyyy-MM-dd} {value}", tempValue) Then
+        If value.Substring(1).Contains("-") Then Return False ' allowed as first char
+        ' --- Try to convert to a timespan format
+        Dim tempTsValue As TimeSpan
+        If TimeSpan.TryParse(value, tempTsValue) Then
             Return True
         End If
         Return False
