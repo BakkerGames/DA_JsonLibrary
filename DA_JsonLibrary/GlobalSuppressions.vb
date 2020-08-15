@@ -9,4 +9,5 @@ Imports System.Diagnostics.CodeAnalysis
 <Assembly: SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification:="<Pending>")>
 <Assembly: SuppressMessage("Naming", "CA1707:Remove the underscores from assembly name", Justification:="<Pending>")>
 <Assembly: SuppressMessage("Naming", "CA1710:Identifiers should have correct suffix", Justification:="<Pending>")>
+<Assembly: SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value")>
 <Assembly: SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification:="<Pending>")>

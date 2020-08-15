@@ -1,7 +1,7 @@
 ' --- Purpose: Provide a JSON Object class
 ' --- Author : Scott Bakker
 ' --- Created: 09/13/2019
-' --- LastMod: 05/12/2020
+' --- LastMod: 08/11/2020
 
 ' --- Notes  : The keys in this JObject implementation are case sensitive, so "abc" <> "ABC".
 ' ---        : Keys cannot be blank: null, empty, or contain only whitespace.
@@ -13,6 +13,11 @@
 ' ---        : The function ToStringFormatted() will return a string representation with
 ' ---          whitespace added. Two spaces are used for indenting, and CRLF between lines.
 ' ---        : Item allows missing keys. Get returns Nothing and Set does an Add.
+' ---        : Literal strings in VB.NET do not collapse, so "a\\b" and "a\u005Cb" are not
+' ---          equal. If used for keys, they will create two entries. In C#, they would both
+' ---          collapse to the same string and be equal, and thus only create one entry.
+' ---          This difference is in the calling application language, not the language of
+' ---          this class library, and only matters with compiled literal string values.
 
 Imports System.Text
 Imports DA_JsonLibrary.JsonRoutines
@@ -23,13 +28,29 @@ Public Class JObject
 
     Private Const JsonKeyError As String = "JSON Error: Key cannot be blank"
 
-    Private _data As Dictionary(Of String, Object)
+    Private ReadOnly _data As Dictionary(Of String, Object)
 
     Public Sub New()
         ' --- Purpose: Initialize the internal structures of a new JObject
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
         _data = New Dictionary(Of String, Object)
+    End Sub
+
+    Public Sub New(jo As JObject)
+        ' --- Purpose: Initialize the internal structures of a new JObject and copy values
+        ' --- Author : Scott Bakker
+        ' --- Created: 09/13/2019
+        _data = New Dictionary(Of String, Object)
+        Merge(jo)
+    End Sub
+
+    Public Sub New(dict As IDictionary(Of String, Object))
+        ' --- Purpose: Initialize the internal structures of a new JObject and copy values
+        ' --- Author : Scott Bakker
+        ' --- Created: 09/13/2019
+        _data = New Dictionary(Of String, Object)
+        Merge(dict)
     End Sub
 
     Public Function GetEnumerator() As IEnumerator(Of String) Implements IEnumerable(Of String).GetEnumerator
@@ -70,19 +91,13 @@ Public Class JObject
         Return _data.Count
     End Function
 
-    Public Sub Add(ByVal key As String, ByVal value As Object)
-        ' --- Purpose: Add/update item in JObject
-        ' --- Author : Scott Bakker
-        ' --- Created: 05/15/2020
-        Item(key) = value
-    End Sub
-
-    Default Public Property Item(ByVal key As String) As Object
+    Default Public Property Item(key As String, ParamArray keys() As String) As Object
         ' --- Purpose: Give access to item values by key
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
-        ' --- LastMod: 05/12/2020
+        ' --- LastMod: 08/14/2020
         ' --- Allows undefined keys to be referenced. Get returns Nothing and Set does an Add.
+        ' --- If more than one key string is specified, follows the path to the final value.
         Get
             If IsWhitespaceString(key) Then
                 Throw New ArgumentNullException(NameOf(key), JsonKeyError)
@@ -90,25 +105,96 @@ Public Class JObject
             If Not _data.ContainsKey(key) Then
                 Return Nothing
             End If
-            Return _data(key)
+            If UBound(keys, 1) < 0 Then
+                Return _data(key)
+            End If
+            ' --- Follow the path specified in keys
+            If Not _data(key).GetType = GetType(JObject) Then
+                Throw New ArgumentException($"Type is not JObject for ""{key}"": {_data(key).GetType}")
+            End If
+            Dim jo As JObject = CType(_data(key), JObject)
+            Dim i As Integer
+            For i = 0 To UBound(keys, 1) - 1
+                If IsWhitespaceString(keys(i)) Then
+                    Throw New ArgumentNullException(NameOf(key), JsonKeyError)
+                End If
+                If Not jo._data.ContainsKey(keys(i)) Then
+                    Return Nothing
+                End If
+                If Not jo._data(keys(i)).GetType = GetType(JObject) Then
+                    Throw New ArgumentException($"Type is not JObject for ""{keys(i)}"": {jo._data(keys(i)).GetType}")
+                End If
+                jo = CType(jo._data(keys(i)), JObject)
+            Next
+            ' --- Get the value
+            i = UBound(keys, 1)
+            If IsWhitespaceString(keys(i)) Then
+                Throw New ArgumentNullException(NameOf(key), JsonKeyError)
+            End If
+            If Not jo._data.ContainsKey(keys(i)) Then
+                Return Nothing
+            End If
+            Return jo._data(keys(i))
         End Get
         Set(value As Object)
             If IsWhitespaceString(key) Then
                 Throw New ArgumentNullException(NameOf(key), JsonKeyError)
             End If
+            If UBound(keys, 1) < 0 Then
+                If Not _data.ContainsKey(key) Then
+                    _data.Add(key, value)
+                Else
+                    _data(key) = value
+                End If
+                Exit Property
+            End If
+            ' --- Follow the path specified in keys
+            Dim jo As JObject
             If Not _data.ContainsKey(key) Then
-                _data.Add(key, value)
+                _data.Add(key, New JObject)
+            End If
+            If Not _data(key).GetType = GetType(JObject) Then
+                Throw New ArgumentException($"Type is not JObject for ""{key}"": {_data(key).GetType}")
+            End If
+            jo = CType(_data(key), JObject)
+            Dim i As Integer
+            For i = 0 To UBound(keys, 1) - 1
+                If IsWhitespaceString(keys(i)) Then
+                    Throw New ArgumentNullException(NameOf(key), JsonKeyError)
+                End If
+                If Not jo._data.ContainsKey(keys(i)) Then
+                    jo._data.Add(keys(i), New JObject)
+                End If
+                If Not jo._data(keys(i)).GetType = GetType(JObject) Then
+                    Throw New ArgumentException($"Type is not JObject for ""{keys(i)}"": {jo._data(keys(i)).GetType}")
+                End If
+                jo = CType(jo._data(keys(i)), JObject)
+            Next
+            ' --- add value
+            i = UBound(keys, 1)
+            If IsWhitespaceString(keys(i)) Then
+                Throw New ArgumentNullException(NameOf(key), JsonKeyError)
+            End If
+            If Not jo._data.ContainsKey(keys(i)) Then
+                jo._data.Add(keys(i), value)
             Else
-                _data(key) = value
+                _data(keys(i)) = value
             End If
         End Set
     End Property
+
+    Public Function Items() As Dictionary(Of String, Object)
+        ' --- Purpose: Return a dictionary of all key:value items
+        ' --- Author : Scott Bakker
+        ' --- Created: 05/21/2020
+        Return New Dictionary(Of String, Object)(_data)
+    End Function
 
     Public Sub Merge(ByVal jo As JObject)
         ' --- Purpose: Merge a new JObject onto the current one
         ' --- Author : Scott Bakker
         ' --- Created: 09/17/2019
-        ' --- LastMod: 05/12/2020
+        ' --- LastMod: 08/11/2020
         ' --- Note   : If any keys are duplicated, the new value overwrites the current value
         If jo Is Nothing OrElse jo.Count = 0 Then
             Exit Sub
@@ -121,11 +207,11 @@ Public Class JObject
         Next
     End Sub
 
-    Public Sub Merge(ByVal dict As Dictionary(Of String, Object))
+    Public Sub Merge(ByVal dict As IDictionary(Of String, Object))
         ' --- Purpose: Merge a dictionary into the current JObject
         ' --- Author : Scott Bakker
         ' --- Created: 02/11/2020
-        ' --- LastMod: 05/12/2020
+        ' --- LastMod: 08/11/2020
         ' --- Notes  : If any keys are duplicated, the new value overwrites the current value
         ' ---        : This is processed one key/value at a time to trap errors.
         If dict Is Nothing OrElse dict.Count = 0 Then
@@ -157,20 +243,21 @@ Public Class JObject
         ' --- Purpose: Convert a JObject into a string
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
+        ' --- LastMod: 08/11/2020
         Dim result As New StringBuilder
-        result.Append("{")
+        result.Append("{"c)
         Dim addComma As Boolean = False
         For Each kv As KeyValuePair(Of String, Object) In _data
             If addComma Then
-                result.Append(",")
+                result.Append(","c)
             Else
                 addComma = True
             End If
             result.Append(ValueToString(kv.Key))
-            result.Append(":")
+            result.Append(":"c)
             result.Append(ValueToString(kv.Value))
         Next
-        result.Append("}")
+        result.Append("}"c)
         Return result.ToString()
     End Function
 
@@ -178,21 +265,22 @@ Public Class JObject
         ' --- Purpose: Sort the keys before returning as a string
         ' --- Author : Scott Bakker
         ' --- Created: 10/17/2019
+        ' --- LastMod: 08/11/2020
         Dim result As New StringBuilder
-        result.Append("{")
+        result.Append("{"c)
         Dim addComma As Boolean = False
         Dim sorted As New SortedList(_data)
         For i As Integer = 0 To sorted.Count - 1
             If addComma Then
-                result.Append(",")
+                result.Append(","c)
             Else
                 addComma = True
             End If
             result.Append(ValueToString(sorted.GetKey(i)))
-            result.Append(":")
+            result.Append(":"c)
             result.Append(ValueToString(sorted.GetByIndex(i)))
         Next
-        result.Append("}")
+        result.Append("}"c)
         Return result.ToString()
     End Function
 
@@ -208,11 +296,12 @@ Public Class JObject
         ' --- Purpose: Convert this JObject into a string with formatting
         ' --- Author : Scott Bakker
         ' --- Created: 10/17/2019
+        ' --- LastMod: 08/11/2020
         If _data.Count = 0 Then
             Return "{}" ' avoid indent errors
         End If
         Dim result As New StringBuilder
-        result.Append("{")
+        result.Append("{"c)
         If indentLevel >= 0 Then
             result.AppendLine()
             indentLevel += 1
@@ -220,7 +309,7 @@ Public Class JObject
         Dim addComma As Boolean = False
         For Each kv As KeyValuePair(Of String, Object) In _data
             If addComma Then
-                result.Append(",")
+                result.Append(","c)
                 If indentLevel >= 0 Then
                     result.AppendLine()
                 End If
@@ -231,9 +320,9 @@ Public Class JObject
                 result.Append(IndentSpace(indentLevel))
             End If
             result.Append(ValueToString(kv.Key))
-            result.Append(":")
+            result.Append(":"c)
             If indentLevel >= 0 Then
-                result.Append(" ")
+                result.Append(" "c)
             End If
             result.Append(ValueToString(kv.Value, indentLevel))
         Next
@@ -244,7 +333,7 @@ Public Class JObject
             End If
             result.Append(IndentSpace(indentLevel))
         End If
-        result.Append("}")
+        result.Append("}"c)
         Return result.ToString()
     End Function
 
@@ -256,6 +345,7 @@ Public Class JObject
         ' --- Purpose: Convert a string into a JObject
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
+        ' --- LastMod: 04/17/2020
         Dim pos As Integer = 0
         Return Parse(value, pos)
     End Function
@@ -264,32 +354,31 @@ Public Class JObject
         ' --- Purpose: Convert a partial string into a JObject
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
-        ' --- LastMod: 05/12/2020
+        ' --- LastMod: 08/11/2020
         If value Is Nothing OrElse value.Length = 0 Then
             Return Nothing
         End If
         Dim result As New JObject
-        Dim tempKey As String
-        Dim tempValue As String
+        SkipBOM(value, pos)
         SkipWhitespace(value, pos)
-        If value(pos) <> "{" Then
+        If value(pos) <> "{"c Then
             Throw New SystemException($"JSON Error: Unexpected token to start JObject: {value(pos)}")
         End If
         pos += 1
         Do
             SkipWhitespace(value, pos)
             ' --- check for symbols
-            If value(pos) = "}" Then
+            If value(pos) = "}"c Then
                 pos += 1
                 Exit Do ' --- done building JObject
             End If
-            If value(pos) = "," Then
+            If value(pos) = ","c Then
                 ' --- this logic ignores extra commas, but is ok
                 pos += 1
                 Continue Do ' --- Next key/value
             End If
             ' --- Get key string
-            tempKey = GetToken(value, pos)
+            Dim tempKey As String = GetToken(value, pos)
             If IsWhitespaceString(tempKey) Then
                 Throw New SystemException(JsonKeyError)
             End If
@@ -310,35 +399,20 @@ Public Class JObject
             End If
             ' --- Get value
             SkipWhitespace(value, pos)
-            If value(pos) = "{" Then ' --- JObject
+            If value(pos) = "{"c Then ' --- JObject
                 Dim jo As JObject = Parse(value, pos)
                 result(tempKey) = jo
                 Continue Do
             End If
-            If value(pos) = "[" Then ' --- JArray
+            If value(pos) = "["c Then ' --- JArray
                 Dim ja As JArray = JArray.Parse(value, pos)
                 result(tempKey) = ja
                 Continue Do
             End If
             ' --- Get value as a string, convert to object
-            tempValue = GetToken(value, pos)
+            Dim tempValue As String = GetToken(value, pos)
             result(tempKey) = JsonValueToObject(tempValue)
         Loop
-        Return result
-    End Function
-
-#End Region
-
-#Region "Clone"
-
-    Public Shared Function Clone(ByVal jo As JObject) As JObject
-        ' --- Purpose: Clones a JObject
-        ' --- Author : Scott Bakker
-        ' --- Created: 09/20/2019
-        Dim result As New JObject
-        If jo IsNot Nothing AndAlso jo._data IsNot Nothing Then
-            result._data = New Dictionary(Of String, Object)(jo._data)
-        End If
         Return result
     End Function
 

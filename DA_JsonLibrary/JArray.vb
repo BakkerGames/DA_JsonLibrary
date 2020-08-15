@@ -1,7 +1,7 @@
 ﻿' --- Purpose: Provide a JSON Array class
 ' --- Author : Scott Bakker
 ' --- Created: 09/13/2019
-' --- LastMod: 04/06/2020
+' --- LastMod: 08/11/2020
 
 ' --- Notes  : The values in the list ARE ordered based on when they are added.
 ' ---        : The values are NOT sorted, and there can be duplicates.
@@ -15,13 +15,22 @@ Public Class JArray
 
     Implements IEnumerable(Of Object)
 
-    Private _data As List(Of Object)
+    Private ReadOnly _data As List(Of Object)
 
     Public Sub New()
         ' --- Purpose: Initialize the internal structures of a new JArray
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
         _data = New List(Of Object)
+    End Sub
+
+    Public Sub New(list As IEnumerable)
+        ' --- Purpose: Create New JArray from an existing list
+        ' --- Author : Scott Bakker
+        ' --- Created: 09/13/2019
+        ' --- LastMod: 05/21/2020
+        _data = New List(Of Object)
+        Append(list)
     End Sub
 
     Public Function GetEnumerator() As IEnumerator(Of Object) Implements IEnumerable(Of Object).GetEnumerator
@@ -42,14 +51,15 @@ Public Class JArray
         ' --- Purpose: Adds a new value to the end of the JArray list
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
-        ' --- Changes: 10/03/2019 Removed extra string processing, was wrong
+        ' --- LastMod: 10/03/2019
         _data.Add(value)
     End Sub
 
     Public Sub Append(ByVal list As IEnumerable)
-        ' --- Purpose: Append all values in the sent IEnumerable at the end of the JArray list
+        ' --- Purpose: Append all values to the end of the JArray list
         ' --- Author : Scott Bakker
-        ' --- Created: 02/12/2020
+        ' --- Created: 09/13/2019
+        ' --- LastMod: 04/21/2020
         If list IsNot Nothing Then
             For Each obj As Object In list
                 _data.Add(obj)
@@ -68,6 +78,7 @@ Public Class JArray
         ' --- Purpose: Give access to item values by index
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
+        ' --- LastMod: 08/11/2020
         Get
             If index < 0 OrElse index >= _data.Count Then
                 Throw New IndexOutOfRangeException
@@ -105,20 +116,21 @@ Public Class JArray
         ' --- Purpose: Convert this JArray into a string
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
+        ' --- LastMod: 08/11/2020
         ' --- Notes  : This could be implemented as ToStringFormatted(-1) but
         ' ---          it is separate to get better performance.
         Dim result As New StringBuilder
-        result.Append("[")
+        result.Append("["c)
         Dim addComma As Boolean = False
         For Each value As Object In _data
             If addComma Then
-                result.Append(",")
+                result.Append(","c)
             Else
                 addComma = True
             End If
             result.Append(ValueToString(value))
         Next
-        result.Append("]")
+        result.Append("]"c)
         Return result.ToString()
     End Function
 
@@ -134,11 +146,12 @@ Public Class JArray
         ' --- Purpose: Convert this JArray into a string with formatting
         ' --- Author : Scott Bakker
         ' --- Created: 10/17/2019
+        ' --- LastMod: 08/10/2020
         If _data.Count = 0 Then
             Return "[]" ' avoid indent errors
         End If
         Dim result As New StringBuilder
-        result.Append("[")
+        result.Append("["c)
         If indentLevel >= 0 Then
             result.AppendLine()
             indentLevel += 1
@@ -146,7 +159,7 @@ Public Class JArray
         Dim addComma As Boolean = False
         For Each value As Object In _data
             If addComma Then
-                result.Append(",")
+                result.Append(","c)
                 If indentLevel >= 0 Then
                     result.AppendLine()
                 End If
@@ -165,7 +178,7 @@ Public Class JArray
             End If
             result.Append(IndentSpace(indentLevel))
         End If
-        result.Append("]")
+        result.Append("]"c)
         Return result.ToString()
     End Function
 
@@ -177,6 +190,7 @@ Public Class JArray
         ' --- Purpose: Convert a string into a JArray
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
+        ' --- LastMod: 04/17/2020
         Dim pos As Integer = 0
         Return Parse(value, pos)
     End Function
@@ -185,58 +199,44 @@ Public Class JArray
         ' --- Purpose: Convert a partial string into a JArray
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
+        ' --- LastMod: 08/11/2020
         If value Is Nothing OrElse value.Length = 0 Then
             Return Nothing
         End If
         Dim result As New JArray
-        Dim tempValue As String
+        SkipBOM(value, pos)
         SkipWhitespace(value, pos)
-        If value(pos) <> "[" Then
+        If value(pos) <> "["c Then
             Throw New SystemException($"JSON Error: Unexpected token to start JArray: {value(pos)}")
         End If
         pos += 1
         Do
             SkipWhitespace(value, pos)
             ' --- check for symbols
-            If value(pos) = "]" Then
+            If value(pos) = "]"c Then
                 pos += 1
                 Exit Do ' --- done building JArray
             End If
-            If value(pos) = "," Then
+            If value(pos) = ","c Then
                 ' --- this logic ignores extra commas, but is ok
                 pos += 1
                 Continue Do ' --- Next value
             End If
             ' --- Check for JArray, JArray
-            If value(pos) = "{" Then
+            If value(pos) = "{"c Then
                 Dim jo As JObject = JObject.Parse(value, pos)
                 result.Add(jo)
                 Continue Do
             End If
-            If value(pos) = "[" Then
+            If value(pos) = "["c Then
                 Dim ja As JArray = Parse(value, pos)
                 result.Add(ja)
                 Continue Do
             End If
             ' --- Get value as a string, convert to object
-            tempValue = GetToken(value, pos)
+            Dim tempValue As String = GetToken(value, pos)
             result.Add(JsonValueToObject(tempValue))
         Loop
-        Return result
-    End Function
-
-#End Region
-
-#Region "Clone"
-
-    Public Shared Function Clone(ByVal ja As JArray) As JArray
-        ' --- Purpose: Clones a JArray
-        ' --- Author : Scott Bakker
-        ' --- Created: 09/20/2019
-        Dim result As New JArray
-        If ja IsNot Nothing AndAlso ja._data IsNot Nothing Then
-            result._data = New List(Of Object)(ja._data)
-        End If
         Return result
     End Function
 

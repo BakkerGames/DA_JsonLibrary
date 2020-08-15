@@ -1,7 +1,7 @@
 ﻿' --- Purpose: Provide a set of routines to support JSON Object and JSON Array classes
 ' --- Author : Scott Bakker
 ' --- Created: 09/13/2019
-' --- LastMod: 04/06/2020
+' --- LastMod: 08/11/2020
 
 ' --- Notes  : DateTime and DateTimeOffset are stored in JObject and JArray properly
 '              as objects of those types.
@@ -17,20 +17,29 @@ Imports System.Text
 
 Public NotInheritable Class JsonRoutines
 
+#Region "Constants"
+
     Private Const _dateFormat As String = "yyyy-MM-dd"
+
+    ' --- These are unspecified time zones used for local times only
     Private Const _timeFormat As String = "HH:mm:ss"
     Private Const _timeMilliFormat As String = "HH:mm:ss.fff"
     Private Const _dateTimeFormat As String = "yyyy-MM-dd HH:mm:ss"
     Private Const _dateTimeMilliFormat As String = "yyyy-MM-dd HH:mm:ss.fff"
 
-    ' --- The "T" in the 11th position is used to indicate DateTimeOffset
+    ' --- These are precise ISO 8601 format, with the "T" in the 11th position
     Private Const _dateTimeOffsetFormat As String = "yyyy-MM-ddTHH:mm:sszzz"
     Private Const _dateTimeOffsetMilliFormat As String = "yyyy-MM-ddTHH:mm:ss.fffffffzzz"
 
     ' --- TimeSpan formats are very different
     Private Const _timeSpanFormat As String = "c" ' [-][d'.']hh':'mm':'ss['.'fffffff]
 
-    Friend Const _indentSpaceSize As Integer = 2
+    ' --- ToStringFormatted
+    Private Const _indentSpaceSize As Integer = 2
+
+#End Region
+
+#Region "Public Routines"
 
     Public Shared Function IndentSpace(ByVal indentLevel As Integer) As String
         ' --- Purpose: Return a string with the proper number of spaces or tabs
@@ -50,12 +59,15 @@ Public NotInheritable Class JsonRoutines
         Return ValueToString(value, indentLevel)
     End Function
 
+#End Region
+
 #Region "Internal Friend routines"
 
     Protected Friend Shared Function ValueToString(ByVal value As Object, ByRef indentLevel As Integer) As String
         ' --- Purpose: Return a value in proper JSON string format
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
+        ' --- LastMod: 08/11/2020
 
         If value Is Nothing Then
             Return "null"
@@ -67,14 +79,14 @@ Public NotInheritable Class JsonRoutines
         ' --- Check for generic list types
         If t.IsGenericType Then
             Dim result As New StringBuilder
-            result.Append("[")
+            result.Append("["c)
             If indentLevel >= 0 Then
                 indentLevel += 1
             End If
             Dim addComma As Boolean = False
             For Each obj As Object In CType(value, IEnumerable)
                 If addComma Then
-                    result.Append(",")
+                    result.Append(","c)
                 Else
                     addComma = True
                 End If
@@ -93,7 +105,7 @@ Public NotInheritable Class JsonRoutines
                 End If
                 result.Append(IndentSpace(indentLevel))
             End If
-            result.Append("]")
+            result.Append("]"c)
             Return result.ToString
         End If
 
@@ -111,14 +123,14 @@ Public NotInheritable Class JsonRoutines
         ' --- Check for array, return in JArray format
         If t.IsArray Then
             Dim result As New StringBuilder
-            result.Append("[")
+            result.Append("["c)
             If indentLevel >= 0 Then
                 indentLevel += 1
             End If
             Dim addComma As Boolean = False
             For i As Integer = 0 To CType(value, Array).Length - 1
                 If addComma Then
-                    result.Append(",")
+                    result.Append(","c)
                 Else
                     addComma = True
                 End If
@@ -136,7 +148,7 @@ Public NotInheritable Class JsonRoutines
                 End If
                 result.Append(IndentSpace(indentLevel))
             End If
-            result.Append("]")
+            result.Append("]"c)
             Return result.ToString
         End If
 
@@ -144,13 +156,20 @@ Public NotInheritable Class JsonRoutines
 
         Select Case t
 
-            Case GetType(String), GetType(Char)
+            Case GetType(String)
                 Dim result As New StringBuilder
-                result.Append("""")
+                result.Append(""""c)
                 For Each c As Char In value.ToString
                     result.Append(ToJsonChar(c))
                 Next
-                result.Append("""")
+                result.Append(""""c)
+                Return result.ToString
+
+            Case GetType(Char)
+                Dim result As New StringBuilder
+                result.Append(""""c)
+                result.Append(ToJsonChar(CChar(value)))
+                result.Append(""""c)
                 Return result.ToString
 
             Case GetType(Guid)
@@ -164,11 +183,16 @@ Public NotInheritable Class JsonRoutines
                 End If
 
             Case GetType(DateTimeOffset)
+                Dim result As String
                 If CType(value, DateTimeOffset).Millisecond = 0 Then
-                    Return $"""{CType(value, DateTimeOffset).ToString(_dateTimeOffsetFormat, Nothing)}"""
+                    result = CType(value, DateTimeOffset).ToString(_dateTimeOffsetFormat, Nothing)
                 Else
-                    Return $"""{CType(value, DateTimeOffset).ToString(_dateTimeOffsetMilliFormat, Nothing)}"""
+                    result = CType(value, DateTimeOffset).ToString(_dateTimeOffsetMilliFormat, Nothing)
                 End If
+                If result.EndsWith("+00:00") OrElse result.EndsWith("-00:00") Then
+                    result = $"{result.Substring(0, result.Length - 6)}Z"
+                End If
+                Return $"""{result}"""
 
             Case GetType(Date)
                 Dim d As Date = CDate(value)
@@ -199,8 +223,8 @@ Public NotInheritable Class JsonRoutines
 
             Case GetType(Single), GetType(Double), GetType(Decimal)
                 ' --- Remove trailing decimal zeros. This is not necessary or part
-                ' --- of the JSON specification. However, it will be impossible to
-                ' --- compare two JSON string representations without this.
+                ' --- of the JSON specification, but it will be impossible to
+                ' --- compare two JSON string representations without doing this.
                 Return NormalizeDecimal(value.ToString)
 
             Case GetType(Byte),
@@ -225,6 +249,7 @@ Public NotInheritable Class JsonRoutines
         ' --- Purpose: Gets rid of trailing decimal zeros to normalize value
         ' --- Author : Scott Bakker
         ' --- Created: 03/19/2020
+        ' --- LastMod: 08/11/2020
         If value.Contains("E") OrElse value.Contains("e") Then
             ' --- Scientific notation, leave alone
             Return value
@@ -239,11 +264,11 @@ Public NotInheritable Class JsonRoutines
         Return value.TrimEnd("0"c).TrimEnd("."c)
     End Function
 
-    Protected Friend Shared Function FromJsonString(ByVal value As String) As String
+    Protected Friend Shared Function FromSerializedString(ByVal value As String) As String
         ' --- Purpose: Convert a string with escaped characters into control codes
         ' --- Author : Scott Bakker
         ' --- Created: 09/17/2019
-        ' --- LastMod: 05/12/2020
+        ' --- LastMod: 08/11/2020
         If value Is Nothing Then
             Return Nothing
         End If
@@ -265,11 +290,11 @@ Public NotInheritable Class JsonRoutines
             ElseIf lastBackslash Then
                 Select Case c
                     Case """"c
-                        result.Append("""")
+                        result.Append(""""c)
                     Case "\"c
-                        result.Append("\")
+                        result.Append("\"c)
                     Case "/"c
-                        result.Append("/")
+                        result.Append("/"c)
                     Case "r"c
                         result.Append(vbCr)
                     Case "n"c
@@ -300,11 +325,12 @@ Public NotInheritable Class JsonRoutines
     End Function
 
     Protected Friend Shared Function GetToken(ByVal value As String, ByRef pos As Integer) As String
-        ' Purpose: Get a single token from string value for parsing
-        ' Author : Scott Bakker
-        ' Created: 09/13/2019
+        ' --- Purpose: Get a single token from string value for parsing
+        ' --- Author : Scott Bakker
+        ' --- Created: 09/13/2019
+        ' --- LastMod: 04/17/2020
         ' Notes  : Does not do escaped character expansion here, just passes exact value.
-        '        : Properly handles \" within strings properly this way, but nothing else.
+        '        : Properly handles \" within strings this way, but nothing else.
         If value Is Nothing Then
             Return Nothing
         End If
@@ -346,7 +372,7 @@ Public NotInheritable Class JsonRoutines
             ' --- Check for escaped chars
             If inQuote AndAlso lastBackslash Then
                 ' --- Add backslash and character, no expansion here
-                result.Append("\")
+                result.Append("\"c)
                 result.Append(c)
                 lastBackslash = False
             ElseIf inQuote AndAlso c = "\"c Then
@@ -355,14 +381,14 @@ Public NotInheritable Class JsonRoutines
             ElseIf c = """"c Then
                 ' --- Check for quotes around a string
                 If inQuote Then
-                    result.Append("""") ' add ending quote
+                    result.Append(""""c) ' add ending quote
                     Exit Do ' --- Token is done
                 End If
                 If result.Length > 0 Then
                     ' --- Quote in the middle of a token?
                     Throw New SystemException("JSON Error: Unexpected quote char")
                 End If
-                result.Append("""") ' add beginning quote
+                result.Append(""""c) ' add beginning quote
                 inQuote = True
             Else
                 ' --- Add this char
@@ -379,6 +405,7 @@ Public NotInheritable Class JsonRoutines
         ' --- Purpose: Convert a string representation of a value to an actual object
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
+        ' --- LastMod: 08/11/2020
         If value Is Nothing OrElse value.Length = 0 Then
             Return Nothing
         End If
@@ -396,7 +423,7 @@ Public NotInheritable Class JsonRoutines
                     Return Date.Parse(value)
                 End If
                 ' --- Parse all escaped sequences to chars
-                Return FromJsonString(value)
+                Return FromSerializedString(value)
             End If
             If value = "null" Then
                 Return Nothing
@@ -423,12 +450,32 @@ Public NotInheritable Class JsonRoutines
         End Try
     End Function
 
+    Protected Friend Shared Sub SkipBOM(ByVal value As String, ByRef pos As Integer)
+        ' --- Purpose: Skip over Byte-Order Mark (BOM) at the beginning of a stream
+        ' --- Author : Scott Bakker
+        ' --- Created: 05/20/2020
+        ' --- LastMod: 08/11/2020
+        ' --- UTF-8 BOM = 0xEF,0xBB,0xBF = 239,187,191
+        If value Is Nothing Then
+            Exit Sub
+        End If
+        If pos + 3 <= value.Length Then
+            If Asc(value(pos)) = 239 AndAlso
+               Asc(value(pos + 1)) = 187 AndAlso
+               Asc(value(pos + 2)) = 191 Then
+                pos += 3 ' --- Move past BOM
+                Exit Sub
+            End If
+        End If
+    End Sub
+
     Protected Friend Shared Sub SkipWhitespace(ByVal value As String, ByRef pos As Integer)
-        ' Purpose: Skip over any whitespace characters or any recognized comments
-        ' Author : Scott Bakker
-        ' Created: 09/23/2019
-        ' Notes  : Comments consist of /*...*/ or // to eol (aka line comment)
-        '        : An unterminated comment is not an error, it is just all skipped
+        ' --- Purpose: Skip over any whitespace characters or any recognized comments
+        ' --- Author : Scott Bakker
+        ' --- Created: 09/23/2019
+        ' --- LastMod: 08/11/2020
+        ' --- Notes  : Comments consist of "/*...*/" or "//" to eol (aka line comment).
+        '            : "//" comments don't need an eol if at the end, but "/*" does need "*/".
         If value Is Nothing Then
             Exit Sub
         End If
@@ -436,7 +483,7 @@ Public NotInheritable Class JsonRoutines
         Dim inLineComment As Boolean = False
         While pos < value.Length
             If inComment Then
-                If value(pos) = "/"c AndAlso value(pos - 1) = "*"c Then ' found ending */
+                If value(pos) = "/"c AndAlso value(pos - 1) = "*"c Then ' --- found ending "*/"
                     inComment = False
                 End If
                 pos += 1
@@ -451,12 +498,12 @@ Public NotInheritable Class JsonRoutines
             End If
             If value(pos) = "/"c AndAlso pos + 1 < value.Length AndAlso value(pos + 1) = "*"c Then
                 inComment = True
-                pos += 3 ' must be sure to skip enough so /*/ pattern doesn't work but /**/ does
+                pos += 2 ' skip over "/*"
                 Continue While
             End If
             If value(pos) = "/"c AndAlso pos + 1 < value.Length AndAlso value(pos + 1) = "/"c Then
                 inLineComment = True
-                pos += 2 ' skip over //
+                pos += 2 ' skip over "//"
                 Continue While
             End If
             If IsWhitespace(value(pos)) Then
@@ -465,12 +512,16 @@ Public NotInheritable Class JsonRoutines
             End If
             Exit While
         End While
+        If inComment Then
+            Throw New SystemException($"JSON Error: Comment starting with /* is not terminated by */")
+        End If
     End Sub
 
     Protected Friend Shared Function IsWhitespaceString(ByVal value As String) As Boolean
         ' --- Purpose: Determine if a string contains only whitespace
         ' --- Author : Scott Bakker
         ' --- Created: 02/12/2020
+        ' --- LastMod: 04/06/2020
         If value Is Nothing Then
             Return True
         End If
@@ -511,12 +562,11 @@ Public NotInheritable Class JsonRoutines
         ' --- Purpose: Check for recognized whitespace characters
         ' --- Author : Scott Bakker
         ' --- Created: 09/13/2019
+        ' --- LastMod: 05/21/2020
         If c = " "c Then Return True
         If c = vbCr Then Return True
         If c = vbLf Then Return True
         If c = vbTab Then Return True
-        If c = vbBack Then Return True
-        If c = vbFormFeed Then Return True
         Return False
     End Function
 
@@ -560,9 +610,10 @@ Public NotInheritable Class JsonRoutines
     End Function
 
     Private Shared Function IsTimeSpanValue(ByVal value As String) As Boolean
-        ' --- Purpose: Determine if value converts to a TimeSpan
+        ' --- Purpose: Determine if value converts to a Time without a Date
         ' --- Author : Scott Bakker
         ' --- Created: 04/27/2020
+        ' --- LastMod: 08/11/2020
         If String.IsNullOrEmpty(value) Then Return False
         If Not value.Contains(":") Then Return False
         If value.Contains("/") Then Return False
@@ -579,28 +630,30 @@ Public NotInheritable Class JsonRoutines
         ' --- Purpose: Determine if value converts to a DateTime
         ' --- Author : Scott Bakker
         ' --- Created: 02/19/2020
+        ' --- LastMod: 08/11/2020
         If String.IsNullOrEmpty(value) Then Return False
         Dim tempValue As Date
-        If Not Date.TryParse(value, tempValue) Then
-            Return False
+        If Date.TryParse(value, tempValue) Then
+            Return True
         End If
-        Return True
+        Return False
     End Function
 
     Private Shared Function IsDateTimeOffsetValue(ByVal value As String) As Boolean
         ' --- Purpose: Determine if value converts to a DateTimeOffset
         ' --- Author : Scott Bakker
         ' --- Created: 02/19/2020
+        ' --- LastMod: 08/11/2020
         If String.IsNullOrEmpty(value) Then Return False
         ' --- The "T" in the 11th position is used to indicate DateTimeOffset
-        If value.Length < 11 OrElse value(10) <> "T" Then
+        If value.Length < 11 OrElse value(10) <> "T"c Then
             Return False
         End If
         Dim tempValue As DateTimeOffset
-        If Not DateTimeOffset.TryParse(value, tempValue) Then
-            Return False
+        If DateTimeOffset.TryParse(value, tempValue) Then
+            Return True
         End If
-        Return True
+        Return False
     End Function
 
 #End Region
