@@ -3,5 +3,8 @@
 ' Project-level suppressions either have no target or are given
 ' a specific target and scoped to a namespace, type, member, etc.
 
-<Assembly: CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification:="<Pending>")>
-<Assembly: CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification:="<Pending>")>
+Imports System.Diagnostics.CodeAnalysis
+
+<Assembly: SuppressMessage("Design", "CA1031:Do not catch general exception types")>
+<Assembly: SuppressMessage("Performance", "CA1822:Mark members as static")>
+<Assembly: SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value")>

@@ -35,6 +35,44 @@ Public Class UnitTestJObject
     End Sub
 
     <TestMethod()>
+    Public Sub TestJObjectNullKeyLevel2()
+        ' arrange
+        Dim jo As New JObject
+        Try
+            ' act
+            jo("key1", Nothing) = 123
+        Catch ex As ArgumentNullException
+            ' succeeded
+            Assert.IsTrue(True)
+            Exit Sub
+        Catch ex As Exception
+            ' failed
+            Assert.Fail()
+            Exit Sub
+        End Try
+        Assert.Fail()
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectNullKeyLevel3()
+        ' arrange
+        Dim jo As New JObject
+        Try
+            ' act
+            jo("key1", "key2", Nothing) = 123
+        Catch ex As ArgumentNullException
+            ' succeeded
+            Assert.IsTrue(True)
+            Exit Sub
+        Catch ex As Exception
+            ' failed
+            Assert.Fail()
+            Exit Sub
+        End Try
+        Assert.Fail()
+    End Sub
+
+    <TestMethod()>
     Public Sub TestJObjectEmptyKey()
         ' arrange
         Dim jo As New JObject
@@ -54,12 +92,88 @@ Public Class UnitTestJObject
     End Sub
 
     <TestMethod()>
+    Public Sub TestJObjectEmptyKeyLevel2()
+        ' arrange
+        Dim jo As New JObject
+        Try
+            ' act
+            jo("key1", "") = 123
+        Catch ex As ArgumentNullException
+            ' succeeded
+            Assert.IsTrue(True)
+            Exit Sub
+        Catch ex As Exception
+            ' failed
+            Assert.Fail()
+            Exit Sub
+        End Try
+        Assert.Fail()
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectEmptyKeyLevel3()
+        ' arrange
+        Dim jo As New JObject
+        Try
+            ' act
+            jo("key1", "key2", "") = 123
+        Catch ex As ArgumentNullException
+            ' succeeded
+            Assert.IsTrue(True)
+            Exit Sub
+        Catch ex As Exception
+            ' failed
+            Assert.Fail()
+            Exit Sub
+        End Try
+        Assert.Fail()
+    End Sub
+
+    <TestMethod()>
     Public Sub TestJObjectWhitespaceKey()
         ' arrange
         Dim jo As New JObject
         Try
             ' act
             jo("   " & vbTab & vbCrLf) = 123
+        Catch ex As ArgumentNullException
+            ' succeeded
+            Assert.IsTrue(True)
+            Exit Sub
+        Catch ex As Exception
+            ' failed
+            Assert.Fail()
+            Exit Sub
+        End Try
+        Assert.Fail()
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectWhitespaceKeyLevel2()
+        ' arrange
+        Dim jo As New JObject
+        Try
+            ' act
+            jo("key1", "   " & vbTab & vbCrLf) = 123
+        Catch ex As ArgumentNullException
+            ' succeeded
+            Assert.IsTrue(True)
+            Exit Sub
+        Catch ex As Exception
+            ' failed
+            Assert.Fail()
+            Exit Sub
+        End Try
+        Assert.Fail()
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectWhitespaceKeyLevel3()
+        ' arrange
+        Dim jo As New JObject
+        Try
+            ' act
+            jo("key1", "key2", "   " & vbTab & vbCrLf) = 123
         Catch ex As ArgumentNullException
             ' succeeded
             Assert.IsTrue(True)
@@ -154,6 +268,23 @@ Public Class UnitTestJObject
     End Sub
 
     <TestMethod()>
+    Public Sub TestJObjectStringExpandedChars()
+        ' --- Note: In C#, the strings "a\\b" and "a\u005Cb" both collapse to "a\b" and are equal.
+        ' ---       In VB.NET, the strings don't collapse and are not equal. This unit test looks
+        ' ---       for "AreNotEqual" because it is written in VB.NET. In C#, use "AreEqual".
+        ' arrange
+        Dim actualValue As String
+        Dim expectedValue As String = "{""key"":""a\\b""}"
+        Dim jo As New JObject
+        Dim value As String = "a\u005Cb"
+        jo("key") = value
+        ' act
+        actualValue = jo.ToString()
+        ' assert
+        Assert.AreNotEqual(expectedValue, actualValue)
+    End Sub
+
+    <TestMethod()>
     Public Sub TestJObjectIntValue()
         ' arrange
         Dim actualValue As String
@@ -178,7 +309,6 @@ Public Class UnitTestJObject
         ' assert
         Assert.AreEqual(expectedValue, actualValue)
     End Sub
-
 
     <TestMethod()>
     Public Sub TestJObjectIntMinValue()
@@ -231,7 +361,6 @@ Public Class UnitTestJObject
         ' assert
         Assert.AreEqual(expectedValue, actualValue)
     End Sub
-
 
     <TestMethod()>
     Public Sub TestJObjectLongMinValue()
@@ -405,7 +534,6 @@ Public Class UnitTestJObject
 
     <TestMethod()>
     Public Sub TestJObjectDatetimeOffsetValue()
-        ' Note: Works in Eastern US time zone, others will fail
         ' arrange
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":""2017-01-02T16:42:25-05:00""}"
@@ -419,12 +547,37 @@ Public Class UnitTestJObject
 
     <TestMethod()>
     Public Sub TestJObjectDatetimeOffsetMilliValue()
-        ' Note: Works in Eastern US time zone, others will fail
         ' arrange
         Dim actualValue As String
         Dim expectedValue As String = "{""key"":""2017-01-02T16:42:25.1234567-05:00""}"
         Dim jo As New JObject
         jo("key") = DateTimeOffset.Parse("2017-01-02T16:42:25.1234567-05:00")
+        ' act
+        actualValue = jo.ToString()
+        ' assert
+        Assert.AreEqual(expectedValue, actualValue)
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectDatetimeOffsetValueZ()
+        ' arrange
+        Dim actualValue As String
+        Dim expectedValue As String = "{""key"":""2017-01-02T16:42:25Z""}"
+        Dim jo As New JObject
+        jo("key") = DateTimeOffset.Parse("2017-01-02T16:42:25Z")
+        ' act
+        actualValue = jo.ToString()
+        ' assert
+        Assert.AreEqual(expectedValue, actualValue)
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectDatetimeOffsetMilliValueZ()
+        ' arrange
+        Dim actualValue As String
+        Dim expectedValue As String = "{""key"":""2017-01-02T16:42:25.1234567Z""}"
+        Dim jo As New JObject
+        jo("key") = DateTimeOffset.Parse("2017-01-02T16:42:25.1234567Z")
         ' act
         actualValue = jo.ToString()
         ' assert
@@ -644,7 +797,7 @@ Public Class UnitTestJObject
         Dim jo1 As New JObject
         jo1("firstitem") = 1
         jo1("seconditem") = 2
-        Dim jo2 As JObject = JObject.Clone(jo1)
+        Dim jo2 As New JObject(jo1)
         jo2("thirditem") = 3
         jo2("fourthitem") = 4
         ' act
@@ -775,6 +928,77 @@ Public Class UnitTestJObject
         Next
         ' assert
         Assert.AreEqual(expectedValue, actualValue)
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectPathSetValue()
+        ' arrange
+        Dim actualValue As String
+        Dim expectedValue As String = "{""key1"":{""key2"":{""key3"":123}}}"
+        Dim jo As New JObject
+        ' act
+        jo("key1", "key2", "key3") = 123
+        actualValue = jo.ToString
+        ' assert
+        Assert.AreEqual(expectedValue, actualValue)
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectPathGetValue()
+        ' arrange
+        Dim actualValue As Integer
+        Dim expectedValue As Integer = 123
+        Dim jo As New JObject
+        ' act
+        jo("key1", "key2", "key3") = 123
+        actualValue = jo("key1", "key2", "key3")
+        ' assert
+        Assert.AreEqual(expectedValue, actualValue)
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectPathGetValueNothing()
+        ' arrange
+        Dim actualValue As Object
+        Dim expectedValue As Object = Nothing
+        ' act
+        Dim jo As New JObject
+        actualValue = jo("key1", "key2", "key3")
+        ' assert
+        Assert.AreEqual(expectedValue, actualValue)
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectPathGetValueNothingLevel2()
+        ' arrange
+        Dim actualValue As Object
+        Dim expectedValue As Object = Nothing
+        ' act
+        Dim jo As New JObject
+        jo("key1") = New JObject
+        actualValue = jo("key1", "key2", "key3")
+        ' assert
+        Assert.AreEqual(expectedValue, actualValue)
+    End Sub
+
+    <TestMethod()>
+    Public Sub TestJObjectInvalidTypeException()
+        ' arrange
+        Dim jo As New JObject
+        Try
+            ' act
+            jo("key1", "key2") = 456
+            jo("key1", "key2", "key3") = 123
+        Catch ex As ArgumentException
+            ' succeeded
+            Assert.IsTrue(True)
+            Exit Sub
+        Catch ex As Exception
+            ' failed
+            Assert.Fail()
+            Exit Sub
+        End Try
+        Assert.Fail()
     End Sub
 
 End Class
