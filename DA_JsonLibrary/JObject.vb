@@ -1,7 +1,7 @@
 ' --- Purpose: Provide a JSON Object class
 ' --- Author : Scott Bakker
 ' --- Created: 09/13/2019
-' --- LastMod: 08/11/2020
+' --- LastMod: 08/14/2020
 
 ' --- Notes  : The keys in this JObject implementation are case sensitive, so "abc" <> "ABC".
 ' ---        : Keys cannot be blank: null, empty, or contain only whitespace.
@@ -18,6 +18,8 @@
 ' ---          collapse to the same string and be equal, and thus only create one entry.
 ' ---          This difference is in the calling application language, not the language of
 ' ---          this class library, and only matters with compiled literal string values.
+' ---        : A path to a specific value can be accessed using multiple key strings, as in
+' ---              jo("key1", "key2", "key3") = 123
 
 Imports System.Text
 Imports DA_JsonLibrary.JsonRoutines
@@ -98,7 +100,10 @@ Public Class JObject
         ' --- LastMod: 08/14/2020
         ' --- Allows undefined keys to be referenced. Get returns Nothing and Set does an Add.
         ' --- If more than one key string is specified, follows the path to the final value.
+        ' --- VB.NET requires two parameters, key and keys(), because the Default property
+        '     must have at least one index value. The calling statement format is the same.
         Get
+            ' --- Check the first key
             If IsWhitespaceString(key) Then
                 Throw New ArgumentNullException(NameOf(key), JsonKeyError)
             End If
@@ -137,6 +142,7 @@ Public Class JObject
             Return jo._data(keys(i))
         End Get
         Set(value As Object)
+            ' --- Check the first key
             If IsWhitespaceString(key) Then
                 Throw New ArgumentNullException(NameOf(key), JsonKeyError)
             End If
@@ -152,8 +158,7 @@ Public Class JObject
             Dim jo As JObject
             If Not _data.ContainsKey(key) Then
                 _data.Add(key, New JObject)
-            End If
-            If Not _data(key).GetType = GetType(JObject) Then
+            ElseIf Not _data(key).GetType = GetType(JObject) Then
                 Throw New ArgumentException($"Type is not JObject for ""{key}"": {_data(key).GetType}")
             End If
             jo = CType(_data(key), JObject)
@@ -164,13 +169,12 @@ Public Class JObject
                 End If
                 If Not jo._data.ContainsKey(keys(i)) Then
                     jo._data.Add(keys(i), New JObject)
-                End If
-                If Not jo._data(keys(i)).GetType = GetType(JObject) Then
+                ElseIf Not jo._data(keys(i)).GetType = GetType(JObject) Then
                     Throw New ArgumentException($"Type is not JObject for ""{keys(i)}"": {jo._data(keys(i)).GetType}")
                 End If
                 jo = CType(jo._data(keys(i)), JObject)
             Next
-            ' --- add value
+            ' --- Add/update value
             i = UBound(keys, 1)
             If IsWhitespaceString(keys(i)) Then
                 Throw New ArgumentNullException(NameOf(key), JsonKeyError)
